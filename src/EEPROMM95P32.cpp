@@ -11,7 +11,7 @@ void EEPROMM95P32::begin()
   SPI.begin();
 }
 
-void EEPROMM95P32::writeByte(uint32_t address, byte data)
+void EEPROMM95P32::writeBytes(uint32_t address, byte data[])
 {
   writeEnable();
   SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
@@ -20,13 +20,17 @@ void EEPROMM95P32::writeByte(uint32_t address, byte data)
   SPI.transfer((address >> 16) & 0xFF);
   SPI.transfer((address >> 8) & 0xFF);
   SPI.transfer(address & 0xFF);
-  SPI.transfer(data);
+  // SPI.transfer(data);
+  for(int i = 0 ;i  < 4;i++)
+  {
+    SPI.transfer(data[i]);
+  }
   digitalWrite(_csPin, HIGH);
   SPI.endTransaction();
   waitForWriteComplete();
 }
 
-byte EEPROMM95P32::readByte(uint32_t address)
+void EEPROMM95P32::readBytes(uint32_t address, byte * data[4])
 {
   byte result;
   SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
@@ -35,10 +39,13 @@ byte EEPROMM95P32::readByte(uint32_t address)
   SPI.transfer((address >> 16) & 0xFF);
   SPI.transfer((address >> 8) & 0xFF);
   SPI.transfer(address & 0xFF);
-  result = SPI.transfer(0); // Dummy transfer to read data
+  // result = SPI.transfer(0); // Dummy transfer to read data
+  for(int i = 0 ;i  < 4;i++)
+  {
+    data[i] = SPI.transfer(0);
+  }
   digitalWrite(_csPin, HIGH);
   SPI.endTransaction();
-  return result;
 }
 
 void EEPROMM95P32::writeFloat(uint32_t address, float data)
@@ -51,14 +58,17 @@ void EEPROMM95P32::writeFloat(uint32_t address, float data)
 
   thing.a = data;
 
-  for (int i = 0; i < 4; i++)
-  {
-    writeByte(address + i, thing.bytes[i]);
-  }
+  // for (int i = 0; i < 4; i++)
+  // {
+  //   writeByte(address + i, thing.bytes[i]);
+  // }
+  writeBytes(address, thing.bytes);
 }
 
 float EEPROMM95P32::readFloat(uint32_t address)
 {
+  byte result[4];
+  readBytes(address, result);
   union
   {
     float a;
@@ -67,7 +77,8 @@ float EEPROMM95P32::readFloat(uint32_t address)
 
   for (int i = 0; i < 4; i++)
   {
-    thing.bytes[i] = readByte(address + i);
+    // thing.bytes[i] = readByte(address + i);
+    thing.bytes[i] = result[i];
   }
 
   return thing.a;
