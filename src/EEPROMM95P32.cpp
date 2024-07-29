@@ -11,77 +11,68 @@ void EEPROMM95P32::begin()
   SPI.begin();
 }
 
-void EEPROMM95P32::writeBytes(uint32_t address, byte data[])
+void EEPROMM95P32::writeBytes(uint32_t address, byte data[4])
 {
-  writeEnable();
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
-  digitalWrite(_csPin, LOW);
-  SPI.transfer(0x02); // WRITE command
-  SPI.transfer((address >> 16) & 0xFF);
-  SPI.transfer((address >> 8) & 0xFF);
-  SPI.transfer(address & 0xFF);
-  // SPI.transfer(data);
-  for(int i = 0 ;i  < 4;i++)
-  {
-    SPI.transfer(data[i]);
-  }
-  digitalWrite(_csPin, HIGH);
-  SPI.endTransaction();
-  waitForWriteComplete();
+    writeEnable();
+    SPI.beginTransaction(SPISettings(spi_clock_speed, MSBFIRST, SPI_MODE0));
+    digitalWrite(_csPin, LOW);
+    SPI.transfer(WRITE); // WRITE command
+    SPI.transfer((address >> 16) & 0xFF);
+    SPI.transfer((address >> 8) & 0xFF);
+    SPI.transfer(address & 0xFF);
+    for (int i = 0; i < 4; i++)
+    {
+        SPI.transfer(data[i]);
+    }
+    digitalWrite(_csPin, HIGH);
+    SPI.endTransaction();
 }
 
-void EEPROMM95P32::readBytes(uint32_t address, byte * data[4])
+void EEPROMM95P32::readBytes(uint32_t address, byte (*data)[4])
 {
-  byte result;
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
-  digitalWrite(_csPin, LOW);
-  SPI.transfer(0x03); // READ command
-  SPI.transfer((address >> 16) & 0xFF);
-  SPI.transfer((address >> 8) & 0xFF);
-  SPI.transfer(address & 0xFF);
-  // result = SPI.transfer(0); // Dummy transfer to read data
-  for(int i = 0 ;i  < 4;i++)
-  {
-    data[i] = SPI.transfer(0);
-  }
-  digitalWrite(_csPin, HIGH);
-  SPI.endTransaction();
+    SPI.beginTransaction(SPISettings(spi_clock_speed, MSBFIRST, SPI_MODE0));
+    digitalWrite(FRAM_CS, LOW);
+    SPI.transfer(READ); // READ command
+    SPI.transfer((address >> 16) & 0xFF);
+    SPI.transfer((address >> 8) & 0xFF);
+    SPI.transfer(address & 0xFF);
+    for(int i =0 ;i < 4;i++)
+    {
+        (*data)[i] = SPI.transfer(0); // Dummy transfer to read data
+    }
+    digitalWrite(FRAM_CS, HIGH);
+    SPI.endTransaction();
 }
 
 void EEPROMM95P32::writeFloat(uint32_t address, float data)
 {
-  union
-  {
-    float a;
-    byte bytes[4];
-  } thing;
+    union
+    {
+        float a;
+        byte bytes[4];
+    } thing;
 
-  thing.a = data;
-
-  // for (int i = 0; i < 4; i++)
-  // {
-  //   writeByte(address + i, thing.bytes[i]);
-  // }
-  writeBytes(address, thing.bytes);
+    thing.a = data;
+    writeBytes(address, thing.bytes);
 }
 
 float EEPROMM95P32::readFloat(uint32_t address)
 {
-  byte result[4];
-  readBytes(address, result);
-  union
-  {
-    float a;
-    byte bytes[4];
-  } thing;
+    byte data[4];
+    readBytes(address, &data);
 
-  for (int i = 0; i < 4; i++)
-  {
-    // thing.bytes[i] = readByte(address + i);
-    thing.bytes[i] = result[i];
-  }
+    union
+    {
+        float a;
+        byte bytes[4];
+    } thing;
+    
+    for (int i = 0; i < 4; i++)
+    {
+        thing.bytes[i] = data[i];
+    }
 
-  return thing.a;
+    return thing.a;
 }
 
 void EEPROMM95P32::writeUnsignedLong(uint32_t address, unsigned long data)

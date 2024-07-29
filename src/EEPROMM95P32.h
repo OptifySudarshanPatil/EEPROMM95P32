@@ -8,8 +8,8 @@ class EEPROMM95P32 {
   public:
     EEPROMM95P32(int csPin);
     void begin();
-    void writeByte(uint32_t address, byte data);
-    byte readByte(uint32_t address);
+    void writeBytes(uint32_t address, byte data[4]);
+    void readBytes(uint32_t address, byte (*data)[4]);
     void writeFloat(uint32_t address, float data);
     float readFloat(uint32_t address);
     void writeUnsignedLong(uint32_t address, unsigned long data);
